@@ -4,6 +4,12 @@
 
 [![npm](https://img.shields.io/npm/v/rtcmulticonnection-server.svg)](https://npmjs.org/package/rtcmulticonnection-server) [![downloads](https://img.shields.io/npm/dm/rtcmulticonnection-server.svg)](https://npmjs.org/package/rtcmulticonnection-server)
 
+```sh
+npm install rtcmulticonnection-server
+```
+
+### How to Use?
+
 ```javascript
 require('rtcmulticonnection-server')();
 ```
@@ -11,6 +17,12 @@ require('rtcmulticonnection-server')();
 Or
 
 ```javascript
+function resolveURL(url) {
+    var isWin = !!process.platform.match(/^win/);
+    if (!isWin) return url;
+    return url.replace(/\//g, '\\');
+}
+
 require('rtcmulticonnection-server')({
     config: __dirname + resolveURL('/config.json'),
     logs: __dirname + resolveURL('/logs.json')
