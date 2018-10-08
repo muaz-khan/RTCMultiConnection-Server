@@ -38,12 +38,21 @@ module.exports = exports = function(config, BASH_COLORS_HELPER) {
             }
         }
 
-        // node server.js --defaultDemo=/demos/Video-Conferencing.html
-        if (val.indexOf('--defaultDemo') === 0) {
-            var inner = val.split('--defaultDemo=')[1];
+        // node server.js --dirPath=/var/www/html/
+        if (val.indexOf('--dirPath') === 0) {
+            var inner = val.split('--dirPath=')[1];
             if (inner) {
                 inner = inner.split(' ')[0].trim();
-                config.defaultDemo = inner;
+                config.dirPath = inner;
+            }
+        }
+
+        // node server.js --homePage=/demos/Video-Conferencing.html
+        if (val.indexOf('--homePage') === 0) {
+            var inner = val.split('--homePage=')[1];
+            if (inner) {
+                inner = inner.split(' ')[0].trim();
+                config.homePage = inner;
             }
         }
 
@@ -144,7 +153,9 @@ module.exports = exports = function(config, BASH_COLORS_HELPER) {
             console.log('\tCheck all RTCMultiConnection dependencies.');
             console.log(BASH_COLORS_HELPER.getYellowFG(), '--autoRebootServerOnFailure=false');
             console.log('\tDisable auto-restart server.js on failure.');
-            console.log(BASH_COLORS_HELPER.getYellowFG(), '--defaultDemo=/demos/Video-Conferencing.html');
+            console.log(BASH_COLORS_HELPER.getYellowFG(), '--dirPath=/var/www/html/');
+            console.log('\tDirectory path that is used for HTML/CSS/JS content delivery.');
+            console.log(BASH_COLORS_HELPER.getYellowFG(), '--homePage=/demos/Video-Conferencing.html');
             console.log('\tOpen a specific demo instead of loading list of demos.');
             console.log(BASH_COLORS_HELPER.getYellowFG(), '--adminUserName=username');
             console.log('\t/admin/ page\'s username.');

@@ -3,12 +3,13 @@
 // Documentation  - github.com/muaz-khan/RTCMultiConnection
 
 module.exports = exports = function(root) {
+    var fs = require('fs');
+    var path = require('path');
+    var url = require('url');
+
     root = root || {};
     root.config = root.config || 'config.json';
     root.logs = root.logs || 'logs.json';
-
-    var fs = require('fs');
-    var path = require('path');
 
     var resolveURL = require('./node_scripts/resolveURL.js');
     var BASH_COLORS_HELPER = require('./node_scripts/BASH_COLORS_HELPER.js');
@@ -18,20 +19,23 @@ module.exports = exports = function(root) {
     root.enableLogs = config.enableLogs; // used by "pushLogs"
 
     var isAdminAuthorized = require('./node_scripts/verify-admin.js');
+    var getJsonFile = require('./node_scripts/getJsonFile.js');
 
     // pushLogs is used to write error logs into logs.json
     var pushLogs = require('./node_scripts/pushLogs.js');
-
     var server = require(config.isUseHTTPs ? 'https' : 'http');
-    var url = require('url');
 
     function serverHandler(request, response) {
         try {
             var uri, filename;
 
             try {
+                if(!config.dirPath || !config.dirPath.length) {
+                    config.dirPath = null;
+                }
+
                 uri = url.parse(request.url).pathname;
-                filename = path.join(process.cwd(), uri);
+                filename = path.join(config.dirPath ? resolveURL(config.dirPath) : process.cwd(), uri);
             }
             catch(e) {
                 pushLogs(root, 'url.parse', e);
@@ -66,9 +70,11 @@ module.exports = exports = function(root) {
             });
 
             if(filename.indexOf(resolveURL('/logs.json')) !== -1) {
+                filename = path.join(config.dirPath ? resolveURL(config.dirPath) : process.cwd(), '/logs.json');
+
                 try {
-                    if(isAdminAuthorized(request, config) && fs.existsSync('logs.json')) {
-                        var logs = require('../../logs.json');
+                    if(isAdminAuthorized(request, config) && fs.existsSync(root.logs)) {
+                        var logs = getJsonFile(root.logs);
                         response.writeHead(200, {
                             'Content-Type': 'text/plain'
                         });
@@ -111,7 +117,8 @@ module.exports = exports = function(root) {
                 app.isAdminAuthorized = isAdminAuthorized;
                 app.config = config;
 
-                fs.readFile('admin/index.html', 'binary', function(err, file) {
+                filename = path.join(config.dirPath ? resolveURL(config.dirPath) : process.cwd(), '/admin/index.html');
+                fs.readFile(filename, 'binary', function(err, file) {
                     try {
                         if (err) {
                             response.writeHead(500, {
@@ -165,7 +172,7 @@ module.exports = exports = function(root) {
             try {
                 stats = fs.lstatSync(filename);
 
-                if (filename && filename.search(/demos/g) === -1 && stats.isDirectory() && config.defaultDemo === '/demos/index.html') {
+                if (filename && filename.search(/demos/g) === -1 && stats.isDirectory() && config.homePage === '/demos/index.html') {
                     if (response.redirect) {
                         response.redirect('/demos/');
                     } else {
@@ -199,7 +206,7 @@ module.exports = exports = function(root) {
                         filename = filename.replace(resolveURL('/demos'), '');
                         filename += resolveURL('/demos/index.html');
                     } else {
-                        filename += resolveURL(config.defaultDemo);
+                        filename += resolveURL(config.homePage);
                     }
                 }
             }
@@ -261,16 +268,22 @@ module.exports = exports = function(root) {
                 ca: null
             };
 
+            var pfx = false;
+
             if (!fs.existsSync(config.sslKey)) {
                 console.log(BASH_COLORS_HELPER.getRedFG(), 'sslKey:\t ' + config.sslKey + ' does not exist.');
+            }
+            else {
+                pfx = config.sslKey.indexOf('.pfx') !== -1;
+                options.key = fs.readFileSync(config.sslKey);
             }
 
             if (!fs.existsSync(config.sslCert)) {
                 console.log(BASH_COLORS_HELPER.getRedFG(), 'sslCert:\t ' + config.sslCert + ' does not exist.');
             }
-
-            options.key = fs.readFileSync(config.sslKey);
-            options.cert = fs.readFileSync(config.sslCert);
+            else {
+                options.cert = fs.readFileSync(config.sslCert);
+            }
 
             if (config.sslCabundle) {
                 if (!fs.existsSync(config.sslCabundle)) {
@@ -278,6 +291,12 @@ module.exports = exports = function(root) {
                 }
 
                 options.ca = fs.readFileSync(config.sslCabundle);
+            }
+
+            if(pfx === true) {
+                options = {
+                    pfx: sslKey
+                };
             }
 
             app = server.createServer(options, serverHandler);

@@ -1,7 +1,7 @@
 {
   "name": "rtcmulticonnection-server",
   "preferGlobal": false,
-  "version": "1.0.0",
+  "version": "1.0.1",
   "author": {
     "name": "Muaz Khan",
     "email": "muazkh@gmail.com",
@@ -11,6 +11,9 @@
   "repository": {
     "type": "git",
     "url": "https://github.com/muaz-khan/RTCMultiConnection-Server.git"
+  },
+  "scripts": {
+    "start": "node run-server.js"
   },
   "engines": {
     "node": "latest"

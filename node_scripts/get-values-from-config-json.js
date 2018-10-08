@@ -9,7 +9,8 @@ function getValues(root) {
 
     var result = {
         socketURL: '/',
-        defaultDemo: '/demos/index.html',
+        dirPath: null,
+        homePage: '/demos/index.html',
         socketMessageEvent: 'RTCMultiConnection-Message',
         socketCustomEvent: 'RTCMultiConnection-Custom-Message',
         port: process.env.PORT || 9001,
@@ -71,8 +72,12 @@ function getValues(root) {
         result.socketURL = (config.socketURL || '').toString();
     }
 
-    if ((config.defaultDemo || '').toString().length) {
-        result.defaultDemo = (config.defaultDemo || '').toString();
+    if ((config.dirPath || '').toString().length) {
+        result.dirPath = (config.dirPath || '').toString();
+    }
+
+    if ((config.homePage || '').toString().length) {
+        result.homePage = (config.homePage || '').toString();
     }
 
     if ((config.socketMessageEvent || '').toString().length) {
