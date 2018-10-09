@@ -229,7 +229,6 @@ module.exports = exports = function(root, app, socketCallback) {
             try {
                 params.extra = JSON.parse(params.extra);
             } catch (e) {
-                pushLogs(root, 'params.extra', e);
                 params.extra = {};
             }
         } else {
@@ -565,7 +564,7 @@ module.exports = exports = function(root, app, socketCallback) {
                 if (enableScalableBroadcast === false) {
                     // connect with all participants
                     listOfRooms[roomid].participants.forEach(function(pid) {
-                        if (pid === socket.userid) return;
+                        if (pid === socket.userid || !listOfUsers[pid]) return;
 
                         var user = listOfUsers[pid];
                         message.remoteUserId = pid;
