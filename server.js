@@ -63,7 +63,7 @@ module.exports = exports = function(root) {
             });
 
             // files from node_modules
-            ['RecordRTC.js', 'FileBufferReader.js', 'getStats.js', 'getScreenId.js'].forEach(function(item) {
+            ['RecordRTC.js', 'FileBufferReader.js', 'getStats.js', 'getScreenId.js', 'adapter.js'].forEach(function(item) {
                 if (filename.indexOf(resolveURL('/node_modules/')) !== -1 && filename.indexOf(resolveURL(item)) !== -1) {
                     matched = true;
                 }

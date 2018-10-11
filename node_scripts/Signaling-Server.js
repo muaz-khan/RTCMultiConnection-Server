@@ -954,8 +954,13 @@ module.exports = exports = function(root, app, socketCallback) {
             delete listOfUsers[socket.userid];
 
             if (socket.ondisconnect) {
-                // scalable-broadcast.js
-                socket.ondisconnect();
+                try {
+                    // scalable-broadcast.js
+                    socket.ondisconnect();
+                }
+                catch(e) {
+                    pushLogs('socket.ondisconnect', e);
+                }
             }
 
             sendToAdmin();
