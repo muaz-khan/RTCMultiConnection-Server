@@ -64,7 +64,6 @@ module.exports = exports = function(root, app, socketCallback) {
             listOfUsers[socket.userid] = {
                 socket: socket,
                 connectedWith: {},
-                isPublic: false, // means: isPublicModerator
                 extra: extra || {},
                 admininfo: {},
                 maxParticipantsAllowed: params.maxParticipantsAllowed || 1000,
@@ -344,15 +343,6 @@ module.exports = exports = function(root, app, socketCallback) {
             callback(listOfUsers[remoteUserId].extra);
         });
 
-        socket.on('become-a-public-moderator', function() {
-            try {
-                if (!listOfUsers[socket.userid]) return;
-                listOfUsers[socket.userid].isPublic = true;
-            } catch (e) {
-                pushLogs(root, 'become-a-public-moderator', e);
-            }
-        });
-
         var dontDuplicateListeners = {};
         socket.on('set-custom-socket-event-listener', function(customEvent) {
             if (dontDuplicateListeners[customEvent]) return;
@@ -363,35 +353,6 @@ module.exports = exports = function(root, app, socketCallback) {
                     socket.broadcast.emit(customEvent, message);
                 } catch (e) {}
             });
-        });
-
-        socket.on('dont-make-me-moderator', function() {
-            try {
-                if (!listOfUsers[socket.userid]) return;
-                listOfUsers[socket.userid].isPublic = false;
-            } catch (e) {
-                pushLogs(root, 'dont-make-me-moderator', e);
-            }
-        });
-
-        socket.on('get-public-moderators', function(userIdStartsWith, callback) {
-            try {
-                userIdStartsWith = userIdStartsWith || '';
-                var allPublicModerators = [];
-                for (var moderatorId in listOfUsers) {
-                    if (listOfUsers[moderatorId].isPublic && moderatorId.indexOf(userIdStartsWith) === 0 && moderatorId !== socket.userid) {
-                        var moderator = listOfUsers[moderatorId];
-                        allPublicModerators.push({
-                            userid: moderatorId,
-                            extra: moderator.extra
-                        });
-                    }
-                }
-
-                callback(allPublicModerators);
-            } catch (e) {
-                pushLogs(root, 'get-public-moderators', e);
-            }
         });
 
         socket.on('changed-uuid', function(newUserId, callback) {
@@ -479,7 +440,7 @@ module.exports = exports = function(root, app, socketCallback) {
 
         socket.on('check-presence', function(roomid, callback) {
             try {
-                if (!listOfRooms[roomid]) {
+                if (!listOfRooms[roomid] || !listOfRooms[roomid].participants.length) {
                     callback(false, roomid, {});
                 } else {
                     callback(true, roomid, listOfRooms[roomid].extra);
@@ -504,7 +465,6 @@ module.exports = exports = function(root, app, socketCallback) {
                         listOfUsers[message.remoteUserId] = {
                             socket: null,
                             connectedWith: {},
-                            isPublic: false,
                             extra: {},
                             admininfo: {},
                             maxParticipantsAllowed: params.maxParticipantsAllowed || 1000
@@ -520,7 +480,7 @@ module.exports = exports = function(root, app, socketCallback) {
                     sendToAdmin();
                 }
 
-                if (listOfUsers[message.sender].connectedWith[message.remoteUserId] && listOfUsers[socket.userid]) {
+                if (listOfUsers[message.sender] && listOfUsers[message.sender].connectedWith[message.remoteUserId] && listOfUsers[socket.userid]) {
                     message.extra = listOfUsers[socket.userid].extra;
                     listOfUsers[message.sender].connectedWith[message.remoteUserId].emit(socketMessageEvent, message);
 
@@ -582,13 +542,13 @@ module.exports = exports = function(root, app, socketCallback) {
             try {
                 if (!listOfRooms[roomid]) {
                     listOfRooms[roomid] = {
-                        isPublic: params.isPublic || false,
                         maxParticipantsAllowed: params.maxParticipantsAllowed || 1000,
                         owner: userid, // this can change if owner leaves and if control shifts
                         participants: [userid],
                         extra: {}, // usually owner's extra-data
                         socketMessageEvent: '',
                         socketCustomEvent: '',
+                        identifier: '',
                         session: {
                             audio: true,
                             video: true
@@ -719,7 +679,6 @@ module.exports = exports = function(root, app, socketCallback) {
                     listOfUsers[message.sender] = {
                         socket: socket,
                         connectedWith: {},
-                        isPublic: false,
                         extra: {},
                         admininfo: {},
                         maxParticipantsAllowed: params.maxParticipantsAllowed || 1000
@@ -760,6 +719,34 @@ module.exports = exports = function(root, app, socketCallback) {
             }
         });
 
+        socket.on('get-public-rooms', function(identifier, callback) {
+            try {
+                if(!identifier || !identifier.toString().length) {
+                    callback(null, 'Room public identifier is required. Please check "connection.publicRoomIdentifier".');
+                    return;
+                }
+
+                var rooms = [];
+                Object.keys(listOfRooms).forEach(function(key) {
+                    var room = listOfRooms[key];
+                    if(!room || !room.identifier || !room.identifier.toString().length || room.identifier !== identifier) return;
+                    rooms.push({
+                        maxParticipantsAllowed: room.maxParticipantsAllowed,
+                        owner: room.owner,
+                        participants: room.participants,
+                        extra: room.extra,
+                        session: room.session,
+                        sessionid: key
+                    });
+                });
+
+                callback(rooms);
+            }
+            catch(e) {
+                pushLogs('get-public-rooms', e);
+            }
+        });
+
         socket.on('open-room', function(arg, callback) {
             callback = callback || function() {};
 
@@ -782,7 +769,6 @@ module.exports = exports = function(root, app, socketCallback) {
                     listOfUsers[socket.userid] = {
                         socket: socket,
                         connectedWith: {},
-                        isPublic: false, // means: isPublicModerator
                         extra: arg.extra,
                         admininfo: {},
                         maxParticipantsAllowed: params.maxParticipantsAllowed || 1000,
@@ -816,6 +802,10 @@ module.exports = exports = function(root, app, socketCallback) {
                     listOfRooms[arg.sessionid].extra = arg.extra || {};
                     listOfRooms[arg.sessionid].socketMessageEvent = listOfUsers[socket.userid].socketMessageEvent;
                     listOfRooms[arg.sessionid].socketCustomEvent = listOfUsers[socket.userid].socketCustomEvent;
+
+                    if(arg.identifier && arg.identifier.toString().length) {
+                        listOfRooms[arg.sessionid].identifier = arg.identifier;
+                    }
 
                     try {
                         if (typeof arg.password !== 'undefined' && arg.password.toString().length) {
@@ -866,7 +856,6 @@ module.exports = exports = function(root, app, socketCallback) {
                     listOfUsers[socket.userid] = {
                         socket: socket,
                         connectedWith: {},
-                        isPublic: false, // means: isPublicModerator
                         extra: arg.extra,
                         admininfo: {},
                         maxParticipantsAllowed: params.maxParticipantsAllowed || 1000,
