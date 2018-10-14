@@ -196,6 +196,43 @@ module.exports = exports = function(root, socket, maxRelayLimitPerUser) {
             pushLogs(root, 'scalable-broadcast-disconnect', e);
         }
     };
+
+    return {
+        getUsers: function() {
+            try {
+                var list = [];
+                Object.keys(users).forEach(function(uid) {
+                    var user = users[uid];
+                    if(!user) return;
+                    
+                    try {
+                        var relayReceivers = [];
+                        user.relayReceivers.forEach(function(s) {
+                            relayReceivers.push(s.userid);
+                        });
+
+                        list.push({
+                            userid: user.userid,
+                            broadcastId: user.broadcastId,
+                            isBroadcastInitiator: user.isBroadcastInitiator,
+                            maxRelayLimitPerUser: user.maxRelayLimitPerUser,
+                            relayReceivers: relayReceivers,
+                            receivingFrom: user.receivingFrom,
+                            canRelay: user.canRelay,
+                            typeOfStreams: user.typeOfStreams
+                        });
+                    }
+                    catch(e) {
+                        pushLogs('getUsers', e);
+                    }
+                });
+                return list;
+            }
+            catch(e) {
+                pushLogs('getUsers', e);
+            }
+        }
+    };
 };
 
 function askNestedUsersToRejoin(relayReceivers) {

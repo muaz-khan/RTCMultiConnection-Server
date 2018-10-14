@@ -105,9 +105,15 @@ module.exports = exports = function(root, app, socketCallback) {
                     }
                 });
 
+                var scalableBroadcastUsers = 0;
+                if(ScalableBroadcast && ScalableBroadcast._) {
+                    scalableBroadcastUsers = ScalableBroadcast._.getUsers();
+                }
+
                 adminSocket.emit('admin', {
                     listOfRooms: listOfRooms,
-                    listOfUsers: Object.keys(listOfUsers).length // users
+                    listOfUsers: Object.keys(listOfUsers).length, // users
+                    scalableBroadcastUsers: scalableBroadcastUsers.length
                 });
             }
         } catch (e) {
@@ -255,7 +261,7 @@ module.exports = exports = function(root, app, socketCallback) {
                     // path to scalable broadcast script must be accurate
                     ScalableBroadcast = require('./Scalable-Broadcast.js');
                 }
-                ScalableBroadcast(root, socket, params.maxRelayLimitPerUser);
+                ScalableBroadcast._ = ScalableBroadcast(root, socket, params.maxRelayLimitPerUser);
             } catch (e) {
                 pushLogs(root, 'ScalableBroadcast', e);
             }

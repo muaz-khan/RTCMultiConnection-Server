@@ -56,7 +56,7 @@ module.exports = exports = function(root) {
             }
 
             var matched = false;
-            filename && ['/demos/', '/dev/', '/dist/', '/socket.io/', '/admin/'].forEach(function(item) {
+            filename && ['/demos/', '/dev/', '/dist/', '/socket.io/', '/admin/', '/node_modules/canvas-designer/'].forEach(function(item) {
                 if (filename.indexOf(resolveURL(item)) !== -1) {
                     matched = true;
                 }
@@ -88,17 +88,13 @@ module.exports = exports = function(root) {
                 }
             }
 
-            // handling /admin/ page
-            if (filename && (filename.indexOf('/admin/') !== -1 || filename.indexOf('\\admin\\') !== -1)) {
+            // handle /admin/ page
+            // but ignore /admin/js/ or /admin/css/
+            if (filename && filename.indexOf(resolveURL('/admin/')) !== -1 && filename.indexOf(resolveURL('/js/')) === -1 && filename.indexOf(resolveURL('/css/')) === -1) {
                 if (!isAdminAuthorized(request, config)) {
                     try {
                         var adminAuthorization = require('basic-auth');
                         var credentials = adminAuthorization(request);
-
-                        pushLogs(root, 'invalid-admin', {
-                            message: 'Invalid username or password attempted.',
-                            stack: credentials ? ('name: ' + credentials.name + '\n' + 'password: ' + credentials.pass) : 'Without any UserName or Password.'
-                        });
 
                         response.writeHead(401, {
                             'WWW-Authenticate': 'Basic realm="Node"'
