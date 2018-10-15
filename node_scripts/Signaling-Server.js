@@ -4,6 +4,7 @@
 
 var listOfUsers = {};
 var listOfRooms = {};
+
 var adminSocket;
 
 // for scalable-broadcast demos
@@ -77,7 +78,7 @@ module.exports = exports = function(root, app, socketCallback) {
         sendToAdmin();
     }
 
-    function sendToAdmin() {
+    function sendToAdmin(all) {
         try {
             if (adminSocket) {
                 var users = [];
@@ -111,7 +112,8 @@ module.exports = exports = function(root, app, socketCallback) {
                 }
 
                 adminSocket.emit('admin', {
-                    listOfRooms: listOfRooms,
+                    newUpdates: !all,
+                    listOfRooms: !!all ? listOfRooms : [],
                     listOfUsers: Object.keys(listOfUsers).length, // users
                     scalableBroadcastUsers: scalableBroadcastUsers.length
                 });
@@ -153,7 +155,7 @@ module.exports = exports = function(root, app, socketCallback) {
             callback = callback || function() {};
 
             if (message.all === true) {
-                sendToAdmin();
+                sendToAdmin(true);
             }
 
             if (message.userinfo === true && message.userid) {
@@ -430,15 +432,24 @@ module.exports = exports = function(root, app, socketCallback) {
 
         socket.on('close-entire-session', function(callback) {
             try {
-                var connectedWith = listOfUsers[socket.userid].connectedWith;
-                Object.keys(connectedWith).forEach(function(key) {
-                    if (connectedWith[key] && connectedWith[key].emit) {
-                        try {
-                            connectedWith[key].emit('closed-entire-session', socket.userid, listOfUsers[socket.userid].extra);
-                        } catch (e) {}
-                    }
-                });
-                callback();
+                if(!callback || typeof callback !== 'function') {
+                    callback = function() {};
+                }
+
+                var user = listOfUsers[socket.userid];
+
+                if(!user) return callback(false, 'No such user exist.');
+                if(!user.roomid) return callback(false, 'Not connected to any room.');
+                if(!socket.admininfo) return callback(false, 'Invalid socket.');
+
+                var room = listOfRooms[user.roomid];
+                if(!room) return callback(false, 'Room closed or does not exist.');
+                if(room.owner !== user.userid) return callback(false, 'Only moderator can close a room.');
+                
+                autoCloseEntireSession = true;
+                closeOrShiftRoom();
+
+                callback(true);
             } catch (e) {
                 pushLogs(root, 'close-entire-session', e);
             }
