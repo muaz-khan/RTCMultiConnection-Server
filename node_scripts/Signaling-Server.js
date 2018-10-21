@@ -13,6 +13,9 @@ var ScalableBroadcast;
 // pushLogs is used to write error logs into logs.json
 var pushLogs = require('./pushLogs.js');
 
+// const strings
+var CONST_STRINGS = require('./CONST_STRINGS.js');
+
 module.exports = exports = function(root, app, socketCallback) {
     socketCallback = socketCallback || function() {};
 
@@ -129,8 +132,8 @@ module.exports = exports = function(root, app, socketCallback) {
             var credentials = adminAuthorization(app.request);
 
             pushLogs(root, 'invalid-admin', {
-                message: 'Invalid username or password attempted.',
-                stack: credentials ? ('name: ' + credentials.name + '\n' + 'password: ' + credentials.pass) : 'Without any UserName or Password.'
+                message: CONST_STRINGS.INVALID_ADMIN_CREDENTIAL,
+                stack: credentials ? ('name: ' + credentials.name + '\n' + 'password: ' + credentials.pass) : 'Without any UserName or Password'
             });
 
             socket.disconnect();
@@ -144,8 +147,8 @@ module.exports = exports = function(root, app, socketCallback) {
                 var credentials = adminAuthorization(app.request);
 
                 pushLogs(root, 'invalid-admin', {
-                    message: 'Invalid username or password attempted.',
-                    stack: credentials ? ('name: ' + credentials.name + '\n' + 'password: ' + credentials.pass) : 'Without any UserName or Password.'
+                    message: CONST_STRINGS.INVALID_ADMIN_CREDENTIAL,
+                    stack: credentials ? ('name: ' + credentials.name + '\n' + 'password: ' + credentials.pass) : 'Without any UserName or Password'
                 });
 
                 socket.disconnect();
@@ -165,7 +168,7 @@ module.exports = exports = function(root, app, socketCallback) {
                         callback(user.socket.admininfo || {});
                     } else {
                         callback({
-                            error: 'User-id "' + message.userid + '" does not exist.'
+                            error: CONST_STRINGS.USERID_NOT_AVAILABLE
                         });
                     }
                 } catch (e) {
@@ -267,16 +270,10 @@ module.exports = exports = function(root, app, socketCallback) {
             } catch (e) {
                 pushLogs(root, 'ScalableBroadcast', e);
             }
-
-            // scalable-broadcast can ignore rest of the codes
-            // however it must have evens like open-room, join-room, and socketMessageEvent
-            // return;
         }
 
-        // [disabled]
-        if (false && !!listOfUsers[params.userid]) {
-            params.dontUpdateUserId = true;
-
+        // do not allow to override userid
+        if (!!listOfUsers[params.userid]) {
             var useridAlreadyTaken = params.userid;
             params.userid = (Math.random() * 1000).toString().replace('.', '');
             socket.emit('userid-already-taken', useridAlreadyTaken, params.userid);
@@ -345,7 +342,7 @@ module.exports = exports = function(root, app, socketCallback) {
         socket.on('get-remote-user-extra-data', function(remoteUserId, callback) {
             callback = callback || function() {};
             if (!remoteUserId || !listOfUsers[remoteUserId]) {
-                callback('remoteUserId (' + remoteUserId + ') does NOT exist.');
+                callback(CONST_STRINGS.USERID_NOT_AVAILABLE);
                 return;
             }
             callback(listOfUsers[remoteUserId].extra);
@@ -365,11 +362,6 @@ module.exports = exports = function(root, app, socketCallback) {
 
         socket.on('changed-uuid', function(newUserId, callback) {
             callback = callback || function() {};
-
-            if (params.dontUpdateUserId) {
-                delete params.dontUpdateUserId;
-                return;
-            }
 
             try {
                 if (listOfUsers[socket.userid] && listOfUsers[socket.userid].socket.userid == socket.userid) {
@@ -438,13 +430,13 @@ module.exports = exports = function(root, app, socketCallback) {
 
                 var user = listOfUsers[socket.userid];
 
-                if(!user) return callback(false, 'No such user exist.');
-                if(!user.roomid) return callback(false, 'Not connected to any room.');
-                if(!socket.admininfo) return callback(false, 'Invalid socket.');
+                if(!user) return callback(false, CONST_STRINGS.USERID_NOT_AVAILABLE);
+                if(!user.roomid) return callback(false, CONST_STRINGS.ROOM_NOT_AVAILABLE);
+                if(!socket.admininfo) return callback(false, CONST_STRINGS.INVALID_SOCKET);
 
                 var room = listOfRooms[user.roomid];
-                if(!room) return callback(false, 'Room closed or does not exist.');
-                if(room.owner !== user.userid) return callback(false, 'Only moderator can close a room.');
+                if(!room) return callback(false, CONST_STRINGS.ROOM_NOT_AVAILABLE);
+                if(room.owner !== user.userid) return callback(false, CONST_STRINGS.ROOM_PERMISSION_DENIED);
                 
                 autoCloseEntireSession = true;
                 closeOrShiftRoom();
@@ -739,7 +731,7 @@ module.exports = exports = function(root, app, socketCallback) {
         socket.on('get-public-rooms', function(identifier, callback) {
             try {
                 if(!identifier || !identifier.toString().length) {
-                    callback(null, 'Room public identifier is required. Please check "connection.publicRoomIdentifier".');
+                    callback(null, CONST_STRINGS.PUBLIC_IDENTIFIER_MISSING);
                     return;
                 }
 
@@ -771,8 +763,8 @@ module.exports = exports = function(root, app, socketCallback) {
                 // if already joined a room, either leave or close it
                 closeOrShiftRoom();
 
-                if (listOfRooms[arg.sessionid]) {
-                    callback(false, 'Room in use. Pease join instead or create another room.');
+                if (listOfRooms[arg.sessionid] && listOfRooms[arg.sessionid].participants.length) {
+                    callback(false, CONST_STRINGS.ROOM_NOT_AVAILABLE);
                     return;
                 }
 
@@ -887,13 +879,13 @@ module.exports = exports = function(root, app, socketCallback) {
 
             try {
                 if (!listOfRooms[arg.sessionid]) {
-                    callback(false, 'Room does not exist.');
+                    callback(false, CONST_STRINGS.ROOM_NOT_AVAILABLE);
                     return;
                 }
 
                 try {
                     if (listOfRooms[arg.sessionid].password && listOfRooms[arg.sessionid].password != arg.password) {
-                        callback(false, 'Invalid password.');
+                        callback(false, CONST_STRINGS.INVALID_PASSWORD);
                         return;
                     }
                 } catch (e) {
