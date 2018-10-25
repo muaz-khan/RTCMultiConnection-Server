@@ -197,6 +197,9 @@ module.exports = exports = function(root) {
                     if (filename.indexOf(resolveURL('/demos/MultiRTC/')) !== -1) {
                         filename = filename.replace(resolveURL('/demos/MultiRTC/'), '');
                         filename += resolveURL('/demos/MultiRTC/index.html');
+                    } else if (filename.indexOf(resolveURL('/demos/dashboard/')) !== -1) {
+                        filename = filename.replace(resolveURL('/demos/dashboard/'), '');
+                        filename += resolveURL('/demos/dashboard/index.html');
                     } else if (filename.indexOf(resolveURL('/demos')) !== -1) {
                         filename = filename.replace(resolveURL('/demos/'), '');
                         filename = filename.replace(resolveURL('/demos'), '');

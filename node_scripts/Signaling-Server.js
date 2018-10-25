@@ -70,7 +70,6 @@ module.exports = exports = function(root, app, socketCallback) {
                 connectedWith: {},
                 extra: extra || {},
                 admininfo: {},
-                maxParticipantsAllowed: params.maxParticipantsAllowed || 1000,
                 socketMessageEvent: params.socketMessageEvent || '',
                 socketCustomEvent: params.socketCustomEvent || ''
             };
@@ -252,7 +251,7 @@ module.exports = exports = function(root, app, socketCallback) {
 
         var autoCloseEntireSession = params.autoCloseEntireSession === true || params.autoCloseEntireSession === 'true';
         var sessionid = params.sessionid;
-        var maxParticipantsAllowed = params.maxParticipantsAllowed || 1000;
+        var maxParticipantsAllowed = parseInt(params.maxParticipantsAllowed || 1000) || 1000;
         var enableScalableBroadcast = params.enableScalableBroadcast === true || params.enableScalableBroadcast === 'true';
 
         if (params.userid === 'admin') {
@@ -385,9 +384,12 @@ module.exports = exports = function(root, app, socketCallback) {
             }
         });
 
-        socket.on('set-password', function(password) {
+        socket.on('set-password', function(password, callback) {
             try {
+                callback = callback || function() {};
+
                 if (!socket.admininfo) {
+                    callback(null, null, CONST_STRINGS.DID_NOT_JOIN_ANY_ROOM);
                     return;
                 }
 
@@ -395,6 +397,10 @@ module.exports = exports = function(root, app, socketCallback) {
 
                 if (listOfRooms[roomid] && listOfRooms[roomid].owner == socket.userid) {
                     listOfRooms[roomid].password = password;
+                    callback(true, roomid, null);
+                }
+                else {
+                    callback(false, roomid, CONST_STRINGS.ROOM_PERMISSION_DENIED);
                 }
             } catch (e) {
                 pushLogs(root, 'set-password', e);
@@ -450,9 +456,24 @@ module.exports = exports = function(root, app, socketCallback) {
         socket.on('check-presence', function(roomid, callback) {
             try {
                 if (!listOfRooms[roomid] || !listOfRooms[roomid].participants.length) {
-                    callback(false, roomid, {});
+                    callback(false, roomid, {
+                        _room: {
+                            isFull: false,
+                            isPasswordProtected: false
+                        }
+                    });
                 } else {
-                    callback(true, roomid, listOfRooms[roomid].extra);
+                    var extra = listOfRooms[roomid].extra;
+                    if(typeof extra !== 'object' || !extra) {
+                        extra = {
+                            value: extra
+                        };
+                    }
+                    extra._room = {
+                        isFull: listOfRooms[roomid].participants.length >= listOfRooms[roomid].maxParticipantsAllowed,
+                        isPasswordProtected: !!listOfRooms[roomid]
+                    };
+                    callback(true, roomid, extra);
                 }
             } catch (e) {
                 pushLogs(root, 'check-presence', e);
@@ -466,6 +487,10 @@ module.exports = exports = function(root, app, socketCallback) {
                     return;
                 }
 
+                // we don't need "connectedWith" anymore
+                // todo: remove all these redundant codes
+                // fire "onUserStatusChanged" for room-participants instead of individual users
+                // rename "user-connected" to "user-status-changed"
                 if (!message.message.userLeft && !listOfUsers[message.sender].connectedWith[message.remoteUserId] && !!listOfUsers[message.remoteUserId]) {
                     listOfUsers[message.sender].connectedWith[message.remoteUserId] = listOfUsers[message.remoteUserId].socket;
                     listOfUsers[message.sender].socket.emit('user-connected', message.remoteUserId);
@@ -475,8 +500,7 @@ module.exports = exports = function(root, app, socketCallback) {
                             socket: null,
                             connectedWith: {},
                             extra: {},
-                            admininfo: {},
-                            maxParticipantsAllowed: params.maxParticipantsAllowed || 1000
+                            admininfo: {}
                         };
                     }
 
@@ -509,8 +533,11 @@ module.exports = exports = function(root, app, socketCallback) {
 
                 if (!listOfRooms[roomid]) return; // find a solution?
 
-                if (listOfRooms[roomid].participants.length > params.maxParticipantsAllowed) {
-                    socket.emit('room-full', roomid);
+                if (listOfRooms[roomid].participants.length >= listOfRooms[roomid].maxParticipantsAllowed && listOfRooms[roomid].participants.indexOf(socket.userid) === -1) {
+                    // room is full
+                    // todo: how to tell user that room is full?
+                    // do not fire "room-full" event
+                    // find something else
                     return;
                 }
 
@@ -551,7 +578,7 @@ module.exports = exports = function(root, app, socketCallback) {
             try {
                 if (!listOfRooms[roomid]) {
                     listOfRooms[roomid] = {
-                        maxParticipantsAllowed: params.maxParticipantsAllowed || 1000,
+                        maxParticipantsAllowed: parseInt(params.maxParticipantsAllowed || 1000) || 1000,
                         owner: userid, // this can change if owner leaves and if control shifts
                         participants: [userid],
                         extra: {}, // usually owner's extra-data
@@ -594,11 +621,10 @@ module.exports = exports = function(root, app, socketCallback) {
                                 // reset owner priviliges
                                 listOfRooms[roomid].owner = firstParticipant.socket.userid;
 
-                                // "become-next-modrator" merely sets "connection.isInitiator=true"
-                                // though it is not important; maybe below line is redundant?
-                                firstParticipant.socket.emit('become-next-modrator', roomid);
+                                // redundant?
+                                firstParticipant.socket.emit('set-isInitiator-true', roomid);
 
-                                // remove moderator from room's participants list
+                                // remove from room's participants list
                                 var newParticipantsList = [];
                                 listOfRooms[roomid].participants.forEach(function(pid) {
                                     if (pid != socket.userid) {
@@ -627,7 +653,6 @@ module.exports = exports = function(root, app, socketCallback) {
             }
         }
 
-        var numberOfPasswordTries = 0;
         socket.on(socketMessageEvent, function(message, callback) {
             if (message.remoteUserId && message.remoteUserId === socket.userid) {
                 // remoteUserId MUST be unique
@@ -636,25 +661,6 @@ module.exports = exports = function(root, app, socketCallback) {
 
             try {
                 if (message.remoteUserId && message.remoteUserId != 'system' && message.message.newParticipationRequest) {
-                    if (listOfRooms[message.remoteUserId] && listOfRooms[message.remoteUserId].password) {
-                        if (numberOfPasswordTries > 3) {
-                            socket.emit('password-max-tries-over', message.remoteUserId);
-                            return;
-                        }
-
-                        if (!message.password) {
-                            numberOfPasswordTries++;
-                            socket.emit('join-with-password', message.remoteUserId);
-                            return;
-                        }
-
-                        if (message.password != listOfRooms[message.remoteUserId].password) {
-                            numberOfPasswordTries++;
-                            socket.emit('invalid-password', message.remoteUserId, message.password);
-                            return;
-                        }
-                    }
-
                     if (enableScalableBroadcast === true) {
                         var user = listOfUsers[message.remoteUserId];
                         if (user) {
@@ -689,8 +695,7 @@ module.exports = exports = function(root, app, socketCallback) {
                         socket: socket,
                         connectedWith: {},
                         extra: {},
-                        admininfo: {},
-                        maxParticipantsAllowed: params.maxParticipantsAllowed || 1000
+                        admininfo: {}
                     };
                 }
 
@@ -745,7 +750,8 @@ module.exports = exports = function(root, app, socketCallback) {
                         participants: room.participants,
                         extra: room.extra,
                         session: room.session,
-                        sessionid: key
+                        sessionid: key,
+                        isRoomFull: room.participants.length >= room.maxParticipantsAllowed
                     });
                 });
 
@@ -780,7 +786,6 @@ module.exports = exports = function(root, app, socketCallback) {
                         connectedWith: {},
                         extra: arg.extra,
                         admininfo: {},
-                        maxParticipantsAllowed: params.maxParticipantsAllowed || 1000,
                         socketMessageEvent: params.socketMessageEvent || '',
                         socketCustomEvent: params.socketCustomEvent || ''
                     };
@@ -811,6 +816,7 @@ module.exports = exports = function(root, app, socketCallback) {
                     listOfRooms[arg.sessionid].extra = arg.extra || {};
                     listOfRooms[arg.sessionid].socketMessageEvent = listOfUsers[socket.userid].socketMessageEvent;
                     listOfRooms[arg.sessionid].socketCustomEvent = listOfUsers[socket.userid].socketCustomEvent;
+                    listOfRooms[arg.sessionid].maxParticipantsAllowed = parseInt(params.maxParticipantsAllowed || 1000) || 1000;
 
                     if(arg.identifier && arg.identifier.toString().length) {
                         listOfRooms[arg.sessionid].identifier = arg.identifier;
@@ -867,7 +873,6 @@ module.exports = exports = function(root, app, socketCallback) {
                         connectedWith: {},
                         extra: arg.extra,
                         admininfo: {},
-                        maxParticipantsAllowed: params.maxParticipantsAllowed || 1000,
                         socketMessageEvent: params.socketMessageEvent || '',
                         socketCustomEvent: params.socketCustomEvent || ''
                     };
@@ -882,17 +887,26 @@ module.exports = exports = function(root, app, socketCallback) {
                     callback(false, CONST_STRINGS.ROOM_NOT_AVAILABLE);
                     return;
                 }
-
-                try {
-                    if (listOfRooms[arg.sessionid].password && listOfRooms[arg.sessionid].password != arg.password) {
-                        callback(false, CONST_STRINGS.INVALID_PASSWORD);
-                        return;
-                    }
-                } catch (e) {
-                    pushLogs(root, 'join-room.password', e);
-                }
             } catch (e) {
                 pushLogs(root, 'join-room', e);
+            }
+
+            try {
+                if (listOfRooms[arg.sessionid].password && listOfRooms[arg.sessionid].password != arg.password) {
+                    callback(false, CONST_STRINGS.INVALID_PASSWORD);
+                    return;
+                }
+            } catch (e) {
+                pushLogs(root, 'join-room.password', e);
+            }
+
+            try {
+                if (listOfRooms[arg.sessionid].participants.length >= listOfRooms[arg.sessionid].maxParticipantsAllowed) {
+                    callback(false, CONST_STRINGS.ROOM_FULL);
+                    return;
+                }
+            } catch (e) {
+                pushLogs(root, 'join-room.ROOM_FULL', e);
             }
 
             // append this user into participants list
