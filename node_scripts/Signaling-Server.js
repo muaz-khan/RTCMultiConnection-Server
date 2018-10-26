@@ -471,7 +471,7 @@ module.exports = exports = function(root, app, socketCallback) {
                     }
                     extra._room = {
                         isFull: listOfRooms[roomid].participants.length >= listOfRooms[roomid].maxParticipantsAllowed,
-                        isPasswordProtected: !!listOfRooms[roomid]
+                        isPasswordProtected: listOfRooms[roomid].password && listOfRooms[roomid].password.toString().replace(/ /g, '').length
                     };
                     callback(true, roomid, extra);
                 }
@@ -735,7 +735,7 @@ module.exports = exports = function(root, app, socketCallback) {
 
         socket.on('get-public-rooms', function(identifier, callback) {
             try {
-                if(!identifier || !identifier.toString().length) {
+                if(!identifier || !identifier.toString().length || !identifier.toString().replace(/ /g, '').length) {
                     callback(null, CONST_STRINGS.PUBLIC_IDENTIFIER_MISSING);
                     return;
                 }

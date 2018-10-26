@@ -1,7 +1,7 @@
 {
   "name": "rtcmulticonnection-server",
   "preferGlobal": false,
-  "version": "1.0.8",
+  "version": "1.0.9",
   "author": {
     "name": "Muaz Khan",
     "email": "muazkh@gmail.com",
@@ -13,12 +13,12 @@
     "url": "https://github.com/muaz-khan/RTCMultiConnection-Server.git"
   },
   "scripts": {
-    "start": "node run-server.js"
+    "start": "node server.js"
   },
   "engines": {
     "node": "latest"
   },
-  "main": "./server.js",
+  "main": "./node_scripts/index.js",
   "keywords": [
     "peer-to-peer",
     "peer2peer",

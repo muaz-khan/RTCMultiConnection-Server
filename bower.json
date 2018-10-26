@@ -1,7 +1,7 @@
 {
     "name": "rtcmulticonnection-server",
     "description": "RTCMultiConnection socket.io server",
-    "version": "1.0.8",
+    "version": "1.0.9",
     "authors": [
         {
             "name": "Muaz Khan",

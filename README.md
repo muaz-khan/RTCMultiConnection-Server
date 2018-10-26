@@ -19,6 +19,9 @@ Now run the server: (required only if you're running outside RTCMultiConnection 
 
 ```sh
 npm start
+
+# or
+node server
 ```
 
 ### How to Use?
