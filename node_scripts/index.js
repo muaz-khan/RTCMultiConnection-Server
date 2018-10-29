@@ -63,7 +63,7 @@ module.exports = exports = function(root) {
             });
 
             // files from node_modules
-            ['RecordRTC.js', 'FileBufferReader.js', 'getStats.js', 'getScreenId.js', 'adapter.js'].forEach(function(item) {
+            ['RecordRTC.js', 'FileBufferReader.js', 'getStats.js', 'getScreenId.js', 'adapter.js', 'MultiStreamsMixer.js'].forEach(function(item) {
                 if (filename.indexOf(resolveURL('/node_modules/')) !== -1 && filename.indexOf(resolveURL(item)) !== -1) {
                     matched = true;
                 }
@@ -89,8 +89,7 @@ module.exports = exports = function(root) {
             }
 
             // handle /admin/ page
-            // but ignore /admin/js/ or /admin/css/
-            if (filename && filename.indexOf(resolveURL('/admin/')) !== -1 && filename.indexOf(resolveURL('/js/')) === -1 && filename.indexOf(resolveURL('/css/')) === -1) {
+            if (filename && filename.indexOf(resolveURL('/admin/')) !== -1) {
                 if (!isAdminAuthorized(request, config)) {
                     try {
                         var adminAuthorization = require('basic-auth');
@@ -113,7 +112,12 @@ module.exports = exports = function(root) {
                 app.isAdminAuthorized = isAdminAuthorized;
                 app.config = config;
 
-                filename = path.join(config.dirPath ? resolveURL(config.dirPath) : process.cwd(), '/admin/index.html');
+                if(filename.indexOf(resolveURL('/admin-ui.js')) !== -1) {
+                    filename = path.join(config.dirPath ? resolveURL(config.dirPath) : process.cwd(), '/admin/admin-ui.js');
+                }
+                else {
+                    filename = path.join(config.dirPath ? resolveURL(config.dirPath) : process.cwd(), '/admin/index.html');
+                }
                 fs.readFile(filename, 'binary', function(err, file) {
                     try {
                         if (err) {
