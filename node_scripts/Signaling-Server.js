@@ -81,6 +81,8 @@ module.exports = exports = function(root, app, socketCallback) {
     }
 
     function sendToAdmin(all) {
+        return; // disabled admin
+
         try {
             if (adminSocket) {
                 var users = [];
@@ -126,6 +128,9 @@ module.exports = exports = function(root, app, socketCallback) {
     }
 
     function handleAdminSocket(socket, params) {
+        socket.disconnect(); //disabled admin
+        return;
+
         if (!app.request || !app.isAdminAuthorized || !app.config || !app.isAdminAuthorized(app.request, app.config)) {
             var adminAuthorization = require('basic-auth');
             var credentials = adminAuthorization(app.request);

@@ -56,7 +56,7 @@ module.exports = exports = function(root) {
             }
 
             var matched = false;
-            filename && ['/demos/', '/dev/', '/dist/', '/socket.io/', '/admin/', '/node_modules/canvas-designer/'].forEach(function(item) {
+            filename && ['/demos/', '/dev/', '/dist/', '/socket.io/', /*'/admin/',*/ '/node_modules/canvas-designer/'].forEach(function(item) {
                 if (filename.indexOf(resolveURL(item)) !== -1) {
                     matched = true;
                 }
@@ -69,7 +69,7 @@ module.exports = exports = function(root) {
                 }
             });
 
-            if(filename.indexOf(resolveURL('/logs.json')) !== -1) {
+            if(false && filename.indexOf(resolveURL('/logs.json')) !== -1) {
                 filename = path.join(config.dirPath ? resolveURL(config.dirPath) : process.cwd(), '/logs.json');
 
                 try {
@@ -89,7 +89,7 @@ module.exports = exports = function(root) {
             }
 
             // handle /admin/ page
-            if (filename && filename.indexOf(resolveURL('/admin/')) !== -1) {
+            if (false && filename && filename.indexOf(resolveURL('/admin/')) !== -1) {
                 if (!isAdminAuthorized(request, config)) {
                     try {
                         var adminAuthorization = require('basic-auth');
