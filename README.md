@@ -4,107 +4,26 @@
 
 [![npm](https://img.shields.io/npm/v/rtcmulticonnection-server.svg)](https://npmjs.org/package/rtcmulticonnection-server) [![downloads](https://img.shields.io/npm/dm/rtcmulticonnection-server.svg)](https://npmjs.org/package/rtcmulticonnection-server)
 
-```sh
-npm install rtcmulticonnection-server
-```
+**Installation Guide:** https://github.com/muaz-khan/RTCMultiConnection-Server/wiki
 
-Now install dependencies: (required only if you're running outside RTCMultiConnection main repository)
-
-```sh
-mkdir node_modules
-npm install
-```
-
-Now run the server: (required only if you're running outside RTCMultiConnection main repository)
-
-```sh
-npm start
-
-# or
-node server
-```
-
-### How to Use?
+Free servers:
 
 ```javascript
-require('rtcmulticonnection-server')();
+connectin.socketURL = 'https://rtcmulticonnection.herokuapp.com:443/';
+connectin.socketURL = 'https://webrtcweb.com:9002/';
 ```
-
-Or
-
-```javascript
-require('rtcmulticonnection-server')({
-    config: 'config.json',
-    logs: 'logs.json'
-});
-```
-
-Or
-
-```javascript
-function resolveURL(url) {
-    var isWin = !!process.platform.match(/^win/);
-    if (!isWin) return url;
-    return url.replace(/\//g, '\\');
-}
-
-require('rtcmulticonnection-server')({
-    config: __dirname + resolveURL('/config.json'),
-    logs: __dirname + resolveURL('/logs.json')
-});
-```
-
-**Please check RTCMultiConnection main repository for demos:**
-
-* https://github.com/muaz-khan/RTCMultiConnection
 
 ## `config.json`
 
-`config.json` is a JSON file.
+* https://github.com/muaz-khan/RTCMultiConnection-Server/wiki/config.json
 
-```json
-{
-  "socketURL": "/",
-  "dirPath": "../RTCMultiConnection/",
-  "homePage": "/demos/index.html",
-  "socketMessageEvent": "RTCMultiConnection-Message",
-  "socketCustomEvent": "RTCMultiConnection-Custom-Message",
-  "port": "9001",
-  "enableLogs": "true",
-  "autoRebootServerOnFailure": "true",
-  "isUseHTTPs": "false",
-  "sslKey": "./fake-keys/privatekey.pem",
-  "sslCert": "./fake-keys/certificate.pem",
-  "sslCabundle": "",
-  "adminUserName": "username",
-  "adminPassword": "password"
-}
-```
+## Integrate inside nodejs applications
 
-**PFX** on windows? i.e. **SSL on windows**:
+* https://github.com/muaz-khan/RTCMultiConnection-Server/wiki/Integrate-inside-nodejs-applications
 
-```json
-{
-  "isUseHTTPs": "true",
-  "sslKey": "/ssl/server.pfx"
-}
-```
+## Demos
 
-`dirPath` is recommended to be an absolute path. However relative paths are also accepted. `dirPath` stands for HTML directory path.
-
-```json
-{
-  "dirPath": "/var/www/html/"
-}
-```
-
-Keep `dirPath` empty to force same directory:
-
-```json
-{
-  "dirPath": ""
-}
-```
+* https://github.com/muaz-khan/RTCMultiConnection
 
 ## License
 
