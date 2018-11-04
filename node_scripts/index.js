@@ -2,7 +2,7 @@
 // MIT License    - www.WebRTC-Experiment.com/licence
 // Documentation  - github.com/muaz-khan/RTCMultiConnection
 
-module.exports = exports = function(root) {
+module.exports = exports = function(root, callback) {
     var fs = require('fs');
     var path = require('path');
     var url = require('url');
@@ -31,245 +31,26 @@ module.exports = exports = function(root) {
 
     function serverHandler(request, response) {
         try {
+            // these three values are used inside Signaling-Server.js
+            app.request = request;
+            app.isAdminAuthorized = isAdminAuthorized;
+            app.config = config;
+
             // to make sure we always get valid info from json file
             // even if nested codes are overriding it
             config = getValuesFromConfigJson(root);
             config = getBashParameters(config, BASH_COLORS_HELPER);
-
-            var uri, filename;
-
-            try {
-                if(!config.dirPath || !config.dirPath.length) {
-                    config.dirPath = null;
-                }
-
-                uri = url.parse(request.url).pathname;
-                filename = path.join(config.dirPath ? resolveURL(config.dirPath) : process.cwd(), uri);
-            }
-            catch(e) {
-                pushLogs(root, 'url.parse', e);
-            }
-
-            filename = (filename || '').toString();
-
-            if (request.method !== 'GET' || uri.indexOf('..') !== -1) {
-                try {
-                    response.writeHead(401, {
-                        'Content-Type': 'text/plain'
-                    });
-                    response.write('401 Unauthorized: ' + path.join('/', uri) + '\n');
-                    response.end();
-                    return;
-                }
-                catch(e) {
-                    pushLogs(root, '!GET or ..', e);
-                }
-            }
-
-            var matched = false;
-            ['/demos/', '/dev/', '/dist/', '/socket.io/', '/node_modules/canvas-designer/'].forEach(function(item) {
-                if (filename.indexOf(resolveURL(item)) !== -1) {
-                    matched = true;
-                }
-            });
-
-            if(config.enableAdmin === true && filename.indexOf(resolveURL('/admin/')) !== -1) {
-                matched = true;
-            }
-
-            // files from node_modules
-            ['RecordRTC.js', 'FileBufferReader.js', 'getStats.js', 'getScreenId.js', 'adapter.js', 'MultiStreamsMixer.js'].forEach(function(item) {
-                if (filename.indexOf(resolveURL('/node_modules/')) !== -1 && filename.indexOf(resolveURL(item)) !== -1) {
-                    matched = true;
-                }
-            });
-
-            if(config.enableAdmin === true && filename.indexOf(resolveURL('/logs.json')) !== -1) {
-                filename = path.join(config.dirPath ? resolveURL(config.dirPath) : process.cwd(), '/logs.json');
-
-                try {
-                    if(isAdminAuthorized(request, config) && fs.existsSync(root.logs)) {
-                        var logs = getJsonFile(root.logs);
-                        response.writeHead(200, {
-                            'Content-Type': 'text/plain'
-                        });
-                        response.write(JSON.stringify(logs));
-                        response.end();
-                        return;
-                    }
-                }
-                catch(e) {
-                    pushLogs(root, '/logs.json', e);
-                }
-            }
-
-            // handle /admin/ page
-            if (config.enableAdmin === true && filename.indexOf(resolveURL('/admin/')) !== -1) {
-                if (!isAdminAuthorized(request, config)) {
-                    try {
-                        var adminAuthorization = require('basic-auth');
-                        var credentials = adminAuthorization(request);
-
-                        response.writeHead(401, {
-                            'WWW-Authenticate': 'Basic realm="Node"'
-                        });
-                        response.write('401 Unauthorized\n');
-                        response.end();
-                        return;
-                    }
-                    catch(e) {
-                        pushLogs(root, '/admin/ auth issues', e);
-                    }
-                }
-
-                // these three values are used inside Signaling-Server.js
-                app.request = request;
-                app.isAdminAuthorized = isAdminAuthorized;
-                app.config = config;
-
-                if(filename.indexOf(resolveURL('/admin-ui.js')) !== -1) {
-                    filename = path.join(config.dirPath ? resolveURL(config.dirPath) : process.cwd(), '/admin/admin-ui.js');
-                }
-                else {
-                    filename = path.join(config.dirPath ? resolveURL(config.dirPath) : process.cwd(), '/admin/index.html');
-                }
-                fs.readFile(filename, 'binary', function(err, file) {
-                    try {
-                        if (err) {
-                            response.writeHead(500, {
-                                'Content-Type': 'text/plain'
-                            });
-                            response.write('404 Not Found: admin/index.html\n');
-                            response.end();
-                            return;
-                        }
-
-                        response.writeHead(200, {
-                            'Content-Type': 'text/html'
-                        });
-                        response.write(file, 'binary');
-                        response.end();
-                    }
-                    catch(e) {
-                        pushLogs(root, 'admin/index.html', e);
-                    }
-                });
-                return;
-            }
-
-            if (filename.search(/.js|.json/g) !== -1 && !matched) {
-                try {
-                    response.writeHead(404, {
-                        'Content-Type': 'text/plain'
-                    });
-                    response.write('404 Not Found: ' + path.join('/', uri) + '\n');
-                    response.end();
-                    return;
-                }
-                catch(e) {
-                    pushLogs(root, '404 Not Found', e);
-                }
-            }
-
-            ['Video-Broadcasting', 'Screen-Sharing', 'Switch-Cameras'].forEach(function(fname) {
-                try {
-                    if (filename.indexOf(fname + '.html') !== -1) {
-                        filename = filename.replace(fname + '.html', fname.toLowerCase() + '.html');
-                    }
-                }
-                catch(e) {
-                    pushLogs(root, 'forEach', e);
-                }
-            });
-
-            var stats;
-
-            try {
-                stats = fs.lstatSync(filename);
-
-                if (filename.search(/demos/g) === -1 && stats.isDirectory() && config.homePage === '/demos/index.html') {
-                    if (response.redirect) {
-                        response.redirect('/demos/');
-                    } else {
-                        response.writeHead(301, {
-                            'Location': '/demos/'
-                        });
-                    }
-                    response.end();
-                    return;
-                }
-            } catch (e) {
-                response.writeHead(404, {
-                    'Content-Type': 'text/plain'
-                });
-                response.write('404 Not Found: ' + path.join('/', uri) + '\n');
-                response.end();
-                return;
-            }
-
-            try {
-                if (fs.statSync(filename).isDirectory()) {
-                    response.writeHead(404, {
-                        'Content-Type': 'text/html'
-                    });
-
-                    if (filename.indexOf(resolveURL('/demos/MultiRTC/')) !== -1) {
-                        filename = filename.replace(resolveURL('/demos/MultiRTC/'), '');
-                        filename += resolveURL('/demos/MultiRTC/index.html');
-                    } else if (filename.indexOf(resolveURL('/demos/dashboard/')) !== -1) {
-                        filename = filename.replace(resolveURL('/demos/dashboard/'), '');
-                        filename += resolveURL('/demos/dashboard/index.html');
-                    } else if (filename.indexOf(resolveURL('/demos')) !== -1) {
-                        filename = filename.replace(resolveURL('/demos/'), '');
-                        filename = filename.replace(resolveURL('/demos'), '');
-                        filename += resolveURL('/demos/index.html');
-                    } else {
-                        filename += resolveURL(config.homePage);
-                    }
-                }
-            }
-            catch(e) {
-                pushLogs(root, 'statSync.isDirectory', e);
-            }
-
-            var contentType = 'text/plain';
-            if (filename.toLowerCase().indexOf('.html') !== -1) {
-                contentType = 'text/html';
-            }
-            if (filename.toLowerCase().indexOf('.css') !== -1) {
-                contentType = 'text/css';
-            }
-            if (filename.toLowerCase().indexOf('.png') !== -1) {
-                contentType = 'image/png';
-            }
-
-            fs.readFile(filename, 'binary', function(err, file) {
-                if (err) {
-                    response.writeHead(500, {
-                        'Content-Type': 'text/plain'
-                    });
-                    response.write('404 Not Found: ' + path.join('/', uri) + '\n');
-                    response.end();
-                    return;
-                }
-
-                try {
-                    file = file.replace('connection.socketURL = \'/\';', 'connection.socketURL = \'' + config.socketURL + '\';');
-                } catch (e) {}
-
-                response.writeHead(200, {
-                    'Content-Type': contentType
-                });
-                response.write(file, 'binary');
-                response.end();
-            });
         } catch (e) {
-            pushLogs(root, 'Unexpected', e);
+            pushLogs('serverHandler', e);
+        }
 
-            response.writeHead(404, {
+        if (typeof callback === 'function') {
+            callback(request, response, config, root, BASH_COLORS_HELPER, pushLogs, resolveURL);
+        } else {
+            response.writeHead(200, {
                 'Content-Type': 'text/plain'
             });
-            response.write('404 Not Found: Unexpected error.\n');
+            response.write('RTCMultiConnection Socket.io Server.\n\n' + 'https://github.com/muaz-khan/RTCMultiConnection-Server\n\n' + 'npm install RTCMultiConnection-Server');
             response.end();
         }
     }
@@ -290,16 +71,14 @@ module.exports = exports = function(root) {
 
             if (!fs.existsSync(config.sslKey)) {
                 console.log(BASH_COLORS_HELPER.getRedFG(), 'sslKey:\t ' + config.sslKey + ' does not exist.');
-            }
-            else {
+            } else {
                 pfx = config.sslKey.indexOf('.pfx') !== -1;
                 options.key = fs.readFileSync(config.sslKey);
             }
 
             if (!fs.existsSync(config.sslCert)) {
                 console.log(BASH_COLORS_HELPER.getRedFG(), 'sslCert:\t ' + config.sslCert + ' does not exist.');
-            }
-            else {
+            } else {
                 options.cert = fs.readFileSync(config.sslCert);
             }
 
@@ -311,7 +90,7 @@ module.exports = exports = function(root) {
                 options.ca = fs.readFileSync(config.sslCabundle);
             }
 
-            if(pfx === true) {
+            if (pfx === true) {
                 options = {
                     pfx: sslKey
                 };
@@ -321,8 +100,7 @@ module.exports = exports = function(root) {
         } else {
             app = server.createServer(serverHandler);
         }
-    }
-    catch(e) {
+    } catch (e) {
         pushLogs(root, 'createServer', e);
     }
 
@@ -344,21 +122,18 @@ module.exports = exports = function(root) {
                             child.stdout.on('data', function(data) {
                                 try {
                                     cb_stdout(me, data);
-                                }
-                                catch(e) {
+                                } catch (e) {
                                     pushLogs(root, 'stdout.data', e);
                                 }
                             });
                             child.stdout.on('end', function() {
                                 try {
                                     cb_end(me);
-                                }
-                                catch(e) {
+                                } catch (e) {
                                     pushLogs(root, 'stdout.end', e);
                                 }
                             });
-                        }
-                        catch(e) {
+                        } catch (e) {
                             pushLogs(root, 'cmd_exec', e);
                         }
                     }
@@ -394,24 +169,21 @@ module.exports = exports = function(root) {
                         function(me, data) {
                             try {
                                 me.stdout += data.toString();
-                            }
-                            catch(e) {
+                            } catch (e) {
                                 pushLogs(root, 'lsof', e);
                             }
                         },
                         function(me) {
                             try {
                                 me.exit = 1;
-                            }
-                            catch(e) {
+                            } catch (e) {
                                 pushLogs(root, 'lsof.exit', e);
                             }
                         }
                     );
 
                     setTimeout(log_console, 250);
-                }
-                catch(e) {
+                } catch (e) {
                     pushLogs(root, 'app.onerror.EADDRINUSE', e);
                 }
             });
@@ -444,7 +216,7 @@ module.exports = exports = function(root) {
                         console.log(BASH_COLORS_HELPER.getRedBG(), 'Please run on HTTPs to make sure audio,video and screen demos can work on Google Chrome as well.');
                     }
 
-                    if(config.enableAdmin === true) {
+                    if (config.enableAdmin === true) {
                         console.log('Admin page is enabled and running on: ' + domainURL + 'admin/');
                         console.log('\tAdmin page username: ' + config.adminUserName);
                         console.log('\tAdmin page password: ' + config.adminPassword);
@@ -452,13 +224,11 @@ module.exports = exports = function(root) {
 
                     console.log('For more help: ', BASH_COLORS_HELPER.getYellowFG('node server.js --help'));
                     console.log('\n');
-                }
-                catch(e) {
+                } catch (e) {
                     pushLogs(root, 'app.listen.callback', e);
                 }
             });
-        }
-        catch(e) {
+        } catch (e) {
             pushLogs(root, 'app.listen', e);
         }
 
@@ -490,8 +260,7 @@ module.exports = exports = function(root) {
                     pushLogs(root, 'Signaling-Server.callback', e);
                 }
             });
-        }
-        catch(e) {
+        } catch (e) {
             pushLogs(root, 'require.Signaling-Server', e);
         }
     }
@@ -506,8 +275,7 @@ module.exports = exports = function(root) {
                 cluster.on('exit', function(worker, code, signal) {
                     try {
                         cluster.fork();
-                    }
-                    catch(e) {
+                    } catch (e) {
                         pushLogs(root, 'cluster.exit.fork', e);
                     }
                 });
@@ -516,8 +284,7 @@ module.exports = exports = function(root) {
             if (cluster.isWorker) {
                 runServer();
             }
-        }
-        catch(e) {
+        } catch (e) {
             pushLogs(root, 'cluster.require.fork', e);
         }
     } else {

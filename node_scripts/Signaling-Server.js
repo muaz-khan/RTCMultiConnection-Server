@@ -18,6 +18,7 @@ var CONST_STRINGS = require('./CONST_STRINGS.js');
 
 module.exports = exports = function(root, app, socketCallback) {
     socketCallback = socketCallback || function() {};
+    app.config = app.config || {};
 
     if (!!app.listen) {
         var io = require('socket.io');
@@ -81,7 +82,7 @@ module.exports = exports = function(root, app, socketCallback) {
     }
 
     function sendToAdmin(all) {
-        if(app.config.enableAdmin === false) {
+        if(app.config.enableAdmin !== true) {
             return;
         }
 
@@ -130,7 +131,7 @@ module.exports = exports = function(root, app, socketCallback) {
     }
 
     function handleAdminSocket(socket, params) {
-        if(app.config.enableAdmin === false) {
+        if(app.config.enableAdmin !== true) {
             socket.disconnect(); //disabled admin
             return;
         }
