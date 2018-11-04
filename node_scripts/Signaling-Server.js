@@ -81,13 +81,15 @@ module.exports = exports = function(root, app, socketCallback) {
     }
 
     function sendToAdmin(all) {
-        return; // disabled admin
+        if(app.config.enableAdmin === false) {
+            return;
+        }
 
         try {
             if (adminSocket) {
                 var users = [];
                 // temporarily disabled
-                false && Object.keys(listOfUsers).forEach(function(userid) {
+                app.config.enableAdmin === true && Object.keys(listOfUsers).forEach(function(userid) {
                     try {
                         var item = listOfUsers[userid];
                         if (!item) return; // maybe user just left?
@@ -128,8 +130,10 @@ module.exports = exports = function(root, app, socketCallback) {
     }
 
     function handleAdminSocket(socket, params) {
-        socket.disconnect(); //disabled admin
-        return;
+        if(app.config.enableAdmin === false) {
+            socket.disconnect(); //disabled admin
+            return;
+        }
 
         if (!app.request || !app.isAdminAuthorized || !app.config || !app.isAdminAuthorized(app.request, app.config)) {
             var adminAuthorization = require('basic-auth');

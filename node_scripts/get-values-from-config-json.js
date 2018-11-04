@@ -14,12 +14,13 @@ function getValues(root) {
         socketMessageEvent: 'RTCMultiConnection-Message',
         socketCustomEvent: 'RTCMultiConnection-Custom-Message',
         port: process.env.PORT || 9001,
-        enableLogs: true,
-        autoRebootServerOnFailure: null,
+        enableLogs: false,
+        autoRebootServerOnFailure: false,
         isUseHTTPs: null,
         sslKey: null,
         sslCert: null,
         sslCabundle: null,
+        enableAdmin: false,
         adminUserName: null,
         adminPassword: null
     };
@@ -86,6 +87,10 @@ function getValues(root) {
 
     if ((config.socketCustomEvent || '').toString().length) {
         result.socketCustomEvent = (config.socketCustomEvent || '').toString();
+    }
+
+    if ((config.enableAdmin || '').toString() === 'true') {
+        result.enableAdmin = true;
     }
 
     if ((config.adminUserName || '').toString().length) {

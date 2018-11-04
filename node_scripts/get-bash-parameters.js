@@ -24,9 +24,9 @@ module.exports = exports = function(config, BASH_COLORS_HELPER) {
             }
         }
 
-        // node server.js --autoRebootServerOnFailure=false
-        if (val.indexOf('--autoRebootServerOnFailure=false') === 0) {
-            config.autoRebootServerOnFailure = false;
+        // node server.js --autoRebootServerOnFailure=true
+        if (val.indexOf('--autoRebootServerOnFailure=true') === 0) {
+            config.autoRebootServerOnFailure = true;
         }
 
         // node server.js --port=9002
@@ -54,6 +54,11 @@ module.exports = exports = function(config, BASH_COLORS_HELPER) {
                 inner = inner.split(' ')[0].trim();
                 config.homePage = inner;
             }
+        }
+
+        // node server.js --enableAdmin=true
+        if (val.indexOf('--enableAdmin=true') === 0) {
+            config.enableAdmin = true;
         }
 
         // node server.js --adminUserName=username
@@ -157,6 +162,8 @@ module.exports = exports = function(config, BASH_COLORS_HELPER) {
             console.log('\tDirectory path that is used for HTML/CSS/JS content delivery.');
             console.log(BASH_COLORS_HELPER.getYellowFG(), '--homePage=/demos/Video-Conferencing.html');
             console.log('\tOpen a specific demo instead of loading list of demos.');
+            console.log(BASH_COLORS_HELPER.getYellowFG(), '--enableAdmin=true');
+            console.log('\tEnable /admin/ page.');
             console.log(BASH_COLORS_HELPER.getYellowFG(), '--adminUserName=username');
             console.log('\t/admin/ page\'s username.');
             console.log(BASH_COLORS_HELPER.getYellowFG(), '--adminPassword=password');
@@ -166,4 +173,6 @@ module.exports = exports = function(config, BASH_COLORS_HELPER) {
             process.exit(1);
         }
     });
+
+    return config;
 };

@@ -13,9 +13,13 @@ module.exports = exports = function(root) {
 
     var resolveURL = require('./resolveURL.js');
     var BASH_COLORS_HELPER = require('./BASH_COLORS_HELPER.js');
-    var config = require('./get-values-from-config-json.js')(root);
 
-    require('./get-bash-parameters.js')(config, BASH_COLORS_HELPER);
+    var getValuesFromConfigJson = require('./get-values-from-config-json.js');
+    var config = getValuesFromConfigJson(root);
+
+    var getBashParameters = require('./get-bash-parameters.js');
+
+    config = getBashParameters(config, BASH_COLORS_HELPER);
     root.enableLogs = config.enableLogs; // used by "pushLogs"
 
     var isAdminAuthorized = require('./verify-admin.js');
@@ -27,6 +31,11 @@ module.exports = exports = function(root) {
 
     function serverHandler(request, response) {
         try {
+            // to make sure we always get valid info from json file
+            // even if nested codes are overriding it
+            config = getValuesFromConfigJson(root);
+            config = getBashParameters(config, BASH_COLORS_HELPER);
+
             var uri, filename;
 
             try {
@@ -40,6 +49,8 @@ module.exports = exports = function(root) {
             catch(e) {
                 pushLogs(root, 'url.parse', e);
             }
+
+            filename = (filename || '').toString();
 
             if (request.method !== 'GET' || uri.indexOf('..') !== -1) {
                 try {
@@ -56,11 +67,15 @@ module.exports = exports = function(root) {
             }
 
             var matched = false;
-            filename && ['/demos/', '/dev/', '/dist/', '/socket.io/', /*'/admin/',*/ '/node_modules/canvas-designer/'].forEach(function(item) {
+            ['/demos/', '/dev/', '/dist/', '/socket.io/', '/node_modules/canvas-designer/'].forEach(function(item) {
                 if (filename.indexOf(resolveURL(item)) !== -1) {
                     matched = true;
                 }
             });
+
+            if(config.enableAdmin === true && filename.indexOf(resolveURL('/admin/')) !== -1) {
+                matched = true;
+            }
 
             // files from node_modules
             ['RecordRTC.js', 'FileBufferReader.js', 'getStats.js', 'getScreenId.js', 'adapter.js', 'MultiStreamsMixer.js'].forEach(function(item) {
@@ -69,7 +84,7 @@ module.exports = exports = function(root) {
                 }
             });
 
-            if(false && filename.indexOf(resolveURL('/logs.json')) !== -1) {
+            if(config.enableAdmin === true && filename.indexOf(resolveURL('/logs.json')) !== -1) {
                 filename = path.join(config.dirPath ? resolveURL(config.dirPath) : process.cwd(), '/logs.json');
 
                 try {
@@ -89,7 +104,7 @@ module.exports = exports = function(root) {
             }
 
             // handle /admin/ page
-            if (false && filename && filename.indexOf(resolveURL('/admin/')) !== -1) {
+            if (config.enableAdmin === true && filename.indexOf(resolveURL('/admin/')) !== -1) {
                 if (!isAdminAuthorized(request, config)) {
                     try {
                         var adminAuthorization = require('basic-auth');
@@ -142,7 +157,7 @@ module.exports = exports = function(root) {
                 return;
             }
 
-            if (filename && filename.search(/.js|.json/g) !== -1 && !matched) {
+            if (filename.search(/.js|.json/g) !== -1 && !matched) {
                 try {
                     response.writeHead(404, {
                         'Content-Type': 'text/plain'
@@ -158,7 +173,7 @@ module.exports = exports = function(root) {
 
             ['Video-Broadcasting', 'Screen-Sharing', 'Switch-Cameras'].forEach(function(fname) {
                 try {
-                    if (filename && filename.indexOf(fname + '.html') !== -1) {
+                    if (filename.indexOf(fname + '.html') !== -1) {
                         filename = filename.replace(fname + '.html', fname.toLowerCase() + '.html');
                     }
                 }
@@ -172,7 +187,7 @@ module.exports = exports = function(root) {
             try {
                 stats = fs.lstatSync(filename);
 
-                if (filename && filename.search(/demos/g) === -1 && stats.isDirectory() && config.homePage === '/demos/index.html') {
+                if (filename.search(/demos/g) === -1 && stats.isDirectory() && config.homePage === '/demos/index.html') {
                     if (response.redirect) {
                         response.redirect('/demos/');
                     } else {
@@ -427,6 +442,12 @@ module.exports = exports = function(root) {
                     if (addr.address != 'localhost' && !config.isUseHTTPs) {
                         console.log(BASH_COLORS_HELPER.getRedBG(), 'Warning:');
                         console.log(BASH_COLORS_HELPER.getRedBG(), 'Please run on HTTPs to make sure audio,video and screen demos can work on Google Chrome as well.');
+                    }
+
+                    if(config.enableAdmin === true) {
+                        console.log('Admin page is enabled and running on: ' + domainURL + 'admin/');
+                        console.log('\tAdmin page username: ' + config.adminUserName);
+                        console.log('\tAdmin page password: ' + config.adminPassword);
                     }
 
                     console.log('For more help: ', BASH_COLORS_HELPER.getYellowFG('node server.js --help'));
