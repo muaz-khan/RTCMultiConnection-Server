@@ -761,7 +761,8 @@ module.exports = exports = function(root, app, socketCallback) {
                         extra: room.extra,
                         session: room.session,
                         sessionid: key,
-                        isRoomFull: room.participants.length >= room.maxParticipantsAllowed
+                        isRoomFull: room.participants.length >= room.maxParticipantsAllowed,
+                        isPasswordProtected: !!room.password && room.password.replace(/ /g, '').length > 0
                     });
                 });
 
