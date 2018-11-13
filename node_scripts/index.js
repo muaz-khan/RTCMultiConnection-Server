@@ -45,7 +45,7 @@ module.exports = exports = function(root, callback) {
         }
 
         if (typeof callback === 'function') {
-            callback(request, response, config, root, BASH_COLORS_HELPER, pushLogs, resolveURL);
+            callback(request, response, config, root, BASH_COLORS_HELPER, pushLogs, resolveURL, isAdminAuthorized, getJsonFile);
         } else {
             response.writeHead(200, {
                 'Content-Type': 'text/plain'
