@@ -743,6 +743,42 @@ module.exports = exports = function(root, app, socketCallback) {
             }
         });
 
+        socket.on('is-valid-password', function(password, roomid, callback) {
+            try {
+                callback = callback || function() {};
+                
+                if(!password || !password.toString().replace(/ /g, '').length) {
+                    callback(false, roomid, 'You did not enter the password.');
+                    return;
+                }
+
+                if(!roomid || !roomid.toString().replace(/ /g, '').length) {
+                    callback(false, roomid, 'You did not enter the room-id.');
+                    return;
+                }
+
+                if(!listOfRooms[roomid]) {
+                    callback(false, roomid, CONST_STRINGS.ROOM_NOT_AVAILABLE);
+                    return;
+                }
+
+                if(!listOfRooms[roomid].password) {
+                    callback(false, roomid, 'This room do not have any password.');
+                    return;
+                }
+
+                if(listOfRooms[roomid].password === password) {
+                    callback(true, roomid, false);
+                }
+                else {
+                    callback(false, roomid, CONST_STRINGS.INVALID_PASSWORD);
+                }
+            }
+            catch(e) {
+                pushLogs('is-valid-password', e);
+            }
+        });
+
         socket.on('get-public-rooms', function(identifier, callback) {
             try {
                 if(!identifier || !identifier.toString().length || !identifier.toString().replace(/ /g, '').length) {
