@@ -22,7 +22,7 @@ module.exports = exports = function(root, callback) {
     config = getBashParameters(config, BASH_COLORS_HELPER);
     root.enableLogs = config.enableLogs; // used by "pushLogs"
 
-    var isAdminAuthorized = require('./verify-admin.js');
+    var isAdminAuthorized = config.enableAdmin === true ? require('./verify-admin.js') : function() {};
     var getJsonFile = require('./getJsonFile.js');
 
     // pushLogs is used to write error logs into logs.json

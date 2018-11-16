@@ -1,7 +1,7 @@
 {
   "name": "rtcmulticonnection-server",
   "preferGlobal": false,
-  "version": "1.2.8",
+  "version": "1.2.9",
   "author": {
     "name": "Muaz Khan",
     "email": "muazkh@gmail.com",
@@ -43,9 +43,7 @@
     "muaz-khan"
   ],
   "dependencies": {
-    "socket.io": "latest",
-    "basic-auth": "latest",
-    "tsscmp": "latest"
+    "socket.io": "latest"
   },
   "analyze": false,
   "license": "MIT",

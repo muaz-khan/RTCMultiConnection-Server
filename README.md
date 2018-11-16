@@ -21,6 +21,15 @@ connectin.socketURL = 'https://webrtcweb.com:9002/';
 
 * https://github.com/muaz-khan/RTCMultiConnection-Server/wiki/Integrate-inside-nodejs-applications
 
+## Are you using `/admin/` page?
+
+You need to install following two NPM packages as well:
+
+```sh
+npm install basic-auth
+npm install tsscmp
+```
+
 ## Demos
 
 * https://github.com/muaz-khan/RTCMultiConnection
