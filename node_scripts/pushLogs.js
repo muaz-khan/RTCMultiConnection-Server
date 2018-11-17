@@ -7,7 +7,13 @@ var getJsonFile = require('./getJsonFile.js');
 
 function pushLogs(root, name, error, clearLogsCallback) {
     // return console.log(error.message, error.stack);
-    if (!root.enableLogs) return;
+    if (!root.enableLogs) {
+        try {
+            console.log(name, error.message, error.stack);
+        }
+        catch(e) {}
+        return;
+    }
 
     if (!clearLogsCallback || typeof clearLogsCallback !== 'function') {
         if (!name || !error || !error.message || !error.stack) {

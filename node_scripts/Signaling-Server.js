@@ -16,6 +16,8 @@ var pushLogs = require('./pushLogs.js');
 // const strings
 var CONST_STRINGS = require('./CONST_STRINGS.js');
 
+var isAdminAuthorized = require('./verify-admin.js');
+
 module.exports = exports = function(root, app, socketCallback) {
     socketCallback = socketCallback || function() {};
     app.config = app.config || {};
@@ -131,33 +133,48 @@ module.exports = exports = function(root, app, socketCallback) {
     }
 
     function handleAdminSocket(socket, params) {
-        if(app.config.enableAdmin !== true) {
+        if(app.config.enableAdmin !== true || !params.adminUserName || !params.adminPassword) {
+            socket.emit('admin', {
+                error: 'Please pass "adminUserName" and "adminPassword" via socket.io parameters.'
+            });
+            
+            pushLogs(root, 'invalid-admin', {
+                message: CONST_STRINGS.INVALID_ADMIN_CREDENTIAL,
+                stack: 'name: ' + params.adminUserName + '\n' + 'password: ' + params.adminPassword
+            });
+
             socket.disconnect(); //disabled admin
             return;
         }
 
-        if (!app.request || !app.isAdminAuthorized || !app.config || !app.isAdminAuthorized(app.request, app.config)) {
-            var adminAuthorization = require('basic-auth');
-            var credentials = adminAuthorization(app.request);
+        if (!app.config || !isAdminAuthorized(params, app.config)) {
+            socket.emit('admin', {
+                error: 'Invalid admin username or password.'
+            });
 
             pushLogs(root, 'invalid-admin', {
                 message: CONST_STRINGS.INVALID_ADMIN_CREDENTIAL,
-                stack: credentials ? ('name: ' + credentials.name + '\n' + 'password: ' + credentials.pass) : 'Without any UserName or Password'
+                stack: 'name: ' + params.adminUserName + '\n' + 'password: ' + params.adminPassword
             });
 
             socket.disconnect();
             return;
         }
 
+        socket.emit('admin', {
+            connected: true
+        });
+
         adminSocket = socket;
         socket.on('admin', function(message, callback) {
-            if (!app.request || !app.isAdminAuthorized || !app.config || !app.isAdminAuthorized(app.request, app.config)) {
-                var adminAuthorization = require('basic-auth');
-                var credentials = adminAuthorization(app.request);
+            if (!app.config || !isAdminAuthorized(params, app.config)) {
+                socket.emit('admin', {
+                    error: 'Invalid admin username or password.'
+                });
 
                 pushLogs(root, 'invalid-admin', {
                     message: CONST_STRINGS.INVALID_ADMIN_CREDENTIAL,
-                    stack: credentials ? ('name: ' + credentials.name + '\n' + 'password: ' + credentials.pass) : 'Without any UserName or Password'
+                    stack: 'name: ' + params.adminUserName + '\n' + 'password: ' + params.adminPassword
                 });
 
                 socket.disconnect();

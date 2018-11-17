@@ -22,7 +22,6 @@ module.exports = exports = function(root, callback) {
     config = getBashParameters(config, BASH_COLORS_HELPER);
     root.enableLogs = config.enableLogs; // used by "pushLogs"
 
-    var isAdminAuthorized = config.enableAdmin === true ? require('./verify-admin.js') : function() {};
     var getJsonFile = require('./getJsonFile.js');
 
     // pushLogs is used to write error logs into logs.json
@@ -31,21 +30,18 @@ module.exports = exports = function(root, callback) {
 
     function serverHandler(request, response) {
         try {
-            // these three values are used inside Signaling-Server.js
-            app.request = request;
-            app.isAdminAuthorized = isAdminAuthorized;
-            app.config = config;
-
             // to make sure we always get valid info from json file
             // even if nested codes are overriding it
             config = getValuesFromConfigJson(root);
             config = getBashParameters(config, BASH_COLORS_HELPER);
+
+            app.config = config;
         } catch (e) {
             pushLogs('serverHandler', e);
         }
 
         if (typeof callback === 'function') {
-            callback(request, response, config, root, BASH_COLORS_HELPER, pushLogs, resolveURL, isAdminAuthorized, getJsonFile);
+            callback(request, response, config, root, BASH_COLORS_HELPER, pushLogs, resolveURL, getJsonFile);
         } else {
             response.writeHead(200, {
                 'Content-Type': 'text/plain'
