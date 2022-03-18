@@ -15,6 +15,7 @@ function getValues(param) {
         socketCustomEvent: 'RTCMultiConnection-Custom-Message',
         port: process.env.PORT || 9001,
         enableLogs: false,
+	enableAccessLogs: false,
         autoRebootServerOnFailure: false,
         isUseHTTPs: null,
         sslKey: null,
@@ -67,6 +68,10 @@ function getValues(param) {
 
     if ((config.enableLogs || '').toString() === 'true') {
         result.enableLogs = true;
+    }
+
+    if ((config.enableAccessLogs || '').toString() === 'true') {
+        result.enableAccessLogs = true;
     }
 
     if ((config.socketURL || '').toString().length) {
