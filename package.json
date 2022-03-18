@@ -1,7 +1,7 @@
 {
   "name": "rtcmulticonnection-server",
   "preferGlobal": false,
-  "version": "1.3.2",
+  "version": "1.3.3",
   "author": {
     "name": "Muaz Khan",
     "email": "muazkh@gmail.com",
@@ -49,6 +49,6 @@
     "url": "https://github.com/muaz-khan/RTCMultiConnection-Server/issues",
     "email": "muazkh@gmail.com"
   },
-  "homepage": "https://rtcmulticonnection.herokuapp.com/demos/",
+  "homepage": "https://muazkhan.com:9001/demos/",
   "_from": "rtcmulticonnection-server@"
 }

@@ -27,8 +27,7 @@ require('rtcmulticonnection-server').addSocket(socket);
 ## Free socket.io servers
 
 ```javascript
-connectin.socketURL = 'https://rtcmulticonnection.herokuapp.com:443/';
-connectin.socketURL = 'https://webrtcweb.com:9002/';
+connectin.socketURL = 'https://muazkhan.com:9001/';
 ```
 
 ## `config.json`
@@ -52,7 +51,7 @@ For more information:
 
 ## Demos
 
-* https://rtcmulticonnection.herokuapp.com/demos/
+* https://muazkhan.com:9001/demos/
 
 ## License
 

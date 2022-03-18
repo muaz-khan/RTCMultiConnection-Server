@@ -1,7 +1,7 @@
 {
     "name": "rtcmulticonnection-server",
     "description": "RTCMultiConnection socket.io server",
-    "version": "1.3.2",
+    "version": "1.3.3",
     "authors": [
         {
             "name": "Muaz Khan",
@@ -37,7 +37,7 @@
         "type": "git",
         "url": "https://github.com/muaz-khan/RTCMultiConnection.git"
     },
-    "homepage": "https://rtcmulticonnection.herokuapp.com/demos/",
+    "homepage": "https://muazkhan.com:9001/demos/",
     "ignore": [
         "**/.*",
         "node_modules",
